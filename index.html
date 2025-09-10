@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>랜덤 문제 웹앱 · JSON 데이터</title>
+  <style>
+    :root { --bg:#0b0b0c; --card:#141416; --muted:#a6a7ab; --text:#f6f7f9; --accent:#3b82f6; --ok:#22c55e; --bad:#ef4444; }
+    html,body{height:100%}
+    body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,Apple Color Emoji,Noto Color Emoji; background:var(--bg); color:var(--text)}
+    .wrap{max-width:960px; margin:0 auto; padding:24px}
+    header{display:flex; gap:12px; align-items:center; margin-bottom:12px}
+    h1{font-size:20px; margin:0}
+    .tabs{display:flex; gap:8px; margin:12px 0}
+    .tab{padding:8px 12px; border:1px solid #2a2b30; border-radius:10px; background:#101114; color:var(--muted); cursor:pointer}
+    .tab.active{background:var(--card); color:var(--text); border-color:#333}
+    .card{background:var(--card); border:1px solid #2a2b30; border-radius:14px; padding:18px}
+    .row{display:flex; gap:8px; align-items:center}
+    .btn{padding:8px 12px; background:#1a1b1f; border:1px solid #2a2b30; border-radius:10px; color:var(--text); cursor:pointer}
+    .btn.secondary{background:#111216}
+    .btn.ghost{background:transparent}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .choices{display:grid; gap:10px}
+    .choice{display:flex; gap:10px; align-items:center; border:1px solid #2a2b30; border-radius:12px; padding:10px}
+    .choice.ok{border-color:var(--ok)}
+    .choice.bad{border-color:var(--bad)}
+    .muted{color:var(--muted)}
+    .spacer{height:8px}
+    .grid{display:grid; gap:12px}
+    @media(min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
+    code{background:#101114; padding:2px 6px; border-radius:6px; border:1px solid #2a2b30}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2 7-7 7 7 2 2"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg>
+      <h1>랜덤 문제 웹앱 · JSON 데이터</h1>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="quiz">퀴즈</button>
+      <button class="tab" data-tab="wrong">오답노트</button>
+      <button class="tab" data-tab="settings">설정</button>
+    </div>
+
+    <section id="quiz" class="card">
+      <div class="row" style="justify-content:space-between; margin-bottom:10px">
+        <div id="q-meta" class="muted">문제 0/0</div>
+        <div class="row">
+          <button class="btn secondary" id="btn-prev">이전</button>
+          <button class="btn" id="btn-next">다음</button>
+        </div>
+      </div>
+      <div id="q-question" style="white-space:pre-wrap; font-weight:600; line-height:1.5; margin-bottom:12px">데이터를 불러오세요.</div>
+      <div id="q-choices" class="choices"></div>
+      <div class="spacer"></div>
+      <div class="row" style="gap:10px">
+        <button class="btn" id="btn-submit">정답 확인</button>
+        <button class="btn secondary" id="btn-reveal">해설 보기</button>
+        <button class="btn ghost" id="btn-clear">선택 초기화</button>
+      </div>
+      <div class="spacer"></div>
+      <div id="q-explain" class="muted"></div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <section id="wrong" class="card" style="display:none">
+      <div class="muted" style="margin-bottom:10px">틀린 문제만 재풀이</div>
+      <div class="row" style="justify-content:space-between; margin-bottom:10px">
+        <div id="w-meta" class="muted">오답 0/0</div>
+        <div class="row">
+          <button class="btn secondary" id="w-prev">이전</button>
+          <button class="btn" id="w-next">다음</button>
+        </div>
+      </div>
+      <div id="w-question" style="white-space:pre-wrap; font-weight:600; line-height:1.5; margin-bottom:12px">오답이 없습니다.</div>
+      <div id="w-choices" class="choices"></div>
+      <div class="spacer"></div>
+      <div class="row" style="gap:10px">
+        <button class="btn" id="w-submit">정답 확인</button>
+        <button class="btn secondary" id="w-reveal">해설 보기</button>
+      </div>
+      <div class="spacer"></div>
+      <div id="w-explain" class="muted"></div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <section id="settings" class="card" style="display:none">
+      <div class="grid grid-2">
+        <div>
+          <div class="muted" style="margin-bottom:6px">데이터 파일</div>
+          <div><code>questions.json</code></div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:6px">동작</div>
+          <div class="row" style="flex-wrap:wrap; gap:8px">
+            <button class="btn" id="btn-reload">데이터 불러오기</button>
+            <button class="btn" id="btn-shuffle">문제 섞기</button>
+            <button class="btn" id="btn-reset">오답 전부 초기화</button>
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="muted">배포: 둘을 같은 폴더에 넣고 GitHub Pages로 올리면 됨.</div>
+    </section>
+  </div>
+
+  <script>
+    // === 상태 ===
+    let all = [];
+    let order = [];
+    let idx = 0;
+    let wrongIds = JSON.parse(localStorage.getItem('wrongBank_v1') || '[]');
+    let wOrder = []; let wIdx = 0;
+    let picked = null; let revealed = false;
+    let wPicked = null; let wRevealed = false;
+
+    const $ = s => document.querySelector(s);
+    function hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(h>>>0); }
+    function mkId(row){ return hash((row.question||'') + '|' + (row.choices||[]).join('|')); }
+    function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+    function isCorrect(picked, row){
+      const n = Number(row.correct);
+      if(!Number.isNaN(n) && n>=1 && n<=4) return String(picked)===String(n);
+      const t = String(row.correct).trim();
+      const chosen = row.choices[Number(picked)-1]?.trim();
+      return chosen === t;
+    }
+
+    async function load(){
+      const res = await fetch('questions.json', { cache: 'no-store' });
+      if(!res.ok) throw new Error('questions.json not found');
+      const data = await res.json();
+      data.forEach(o => o.id = mkId(o));
+      all = data;
+      order = all.map((_,i)=>i);
+      idx = 0;
+      renderQuiz();
+      renderWrong();
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const t = btn.dataset.tab;
+        ['quiz','wrong','settings'].forEach(id=>{ document.getElementById(id).style.display = (id===t)?'block':'none'; });
+      });
+    });
+
+    // Quiz render
+    function renderQuiz(){
+      const qMeta = $('#q-meta'); const qQ = $('#q-question'); const qC = $('#q-choices'); const qE = $('#q-explain');
+      if(all.length===0){ qMeta.textContent='문제 0/0'; qQ.textContent='데이터가 없습니다.'; qC.innerHTML=''; qE.textContent=''; return; }
+      const row = all[order[idx]];
+      qMeta.textContent = `문제 ${idx+1} / ${order.length}`;
+      qQ.textContent = row.question;
+      qC.innerHTML = '';
+      row.choices.forEach((c,i)=>{
+        const el = document.createElement('label'); el.className = 'choice';
+        el.innerHTML = `<input type="radio" name="q" value="${i+1}"> <div>${String.fromCharCode(65+i)}. ${c}</div>`;
+        el.querySelector('input').onchange = (e)=>{ picked = e.target.value; paintChoices(); };
+        qC.appendChild(el);
+      });
+      qE.textContent='';
+      picked=null; revealed=false; paintChoices();
+    }
+    function paintChoices(){
+      if(all.length===0) return;
+      const row = all[order[idx]];
+      const nodes = [...document.querySelectorAll('#q-choices .choice')];
+      nodes.forEach(el=>el.classList.remove('ok','bad'));
+      if(revealed){
+        nodes.forEach((el,i)=>{
+          if(isCorrect(String(i+1), row)) el.classList.add('ok');
+          else if(picked===String(i+1)) el.classList.add('bad');
+        });
+      }
+    }
+
+    // Wrong render
+    function buildWrongOrder(){
+      const set = new Set(wrongIds);
+      const idxs = all.map((r,i)=> set.has(r.id)? i : -1).filter(i=>i>=0);
+      wOrder = idxs; wIdx = 0;
+    }
+    function renderWrong(){
+      buildWrongOrder();
+      const meta = $('#w-meta'); const q = $('#w-question'); const c = $('#w-choices'); const e = $('#w-explain');
+      if(wOrder.length===0){ meta.textContent='오답 0/0'; q.textContent='오답이 없습니다.'; c.innerHTML=''; e.textContent=''; return; }
+      const row = all[wOrder[wIdx]];
+      meta.textContent = `오답 ${wIdx+1} / ${wOrder.length}`;
+      q.textContent = row.question;
+      c.innerHTML='';
+      row.choices.forEach((ch,i)=>{
+        const el = document.createElement('label'); el.className='choice';
+        el.innerHTML = `<input type="radio" name="w" value="${i+1}"> <div>${String.fromCharCode(65+i)}. ${ch}</div>`;
+        el.querySelector('input').onchange = (e)=>{ wPicked = e.target.value; paintWrong(); };
+        c.appendChild(el);
+      });
+      e.textContent=''; wPicked=null; wRevealed=false; paintWrong();
+    }
+    function paintWrong(){
+      if(wOrder.length===0) return;
+      const row = all[wOrder[wIdx]];
+      const nodes = [...document.querySelectorAll('#w-choices .choice')];
+      nodes.forEach(el=>el.classList.remove('ok','bad'));
+      if(wRevealed){
+        nodes.forEach((el,i)=>{
+          if(isCorrect(String(i+1), row)) el.classList.add('ok');
+          else if(wPicked===String(i+1)) el.classList.add('bad');
+        });
+      }
+    }
+
+    // Buttons
+    $('#btn-prev').onclick = ()=>{ if(all.length===0) return; idx = (idx-1+order.length)%order.length; renderQuiz(); };
+    $('#btn-next').onclick = ()=>{ if(all.length===0) return; idx = (idx+1)%order.length; renderQuiz(); };
+    $('#btn-submit').onclick = ()=>{
+      if(all.length===0 || !picked) return;
+      revealed = true; paintChoices();
+      const row = all[order[idx]];
+      const ok = isCorrect(picked, row);
+      const set = new Set(wrongIds);
+      if(!ok) set.add(row.id); else set.delete(row.id);
+      wrongIds = [...set]; localStorage.setItem('wrongBank_v1', JSON.stringify(wrongIds));
+      const exp = (row.explanation||'').trim();
+      $('#q-explain').textContent = exp? `해설: ${exp}` : '';
+      renderWrong();
+    };
+    $('#btn-reveal').onclick = ()=>{ if(all.length===0) return; revealed=true; paintChoices(); const row=all[order[idx]]; const exp=(row.explanation||'').trim(); $('#q-explain').textContent = exp? `해설: ${exp}` : ''; };
+    $('#btn-clear').onclick = ()=>{ picked=null; revealed=false; paintChoices(); $('#q-explain').textContent=''; document.querySelectorAll('#q-choices input[type=radio]').forEach(i=> i.checked=false); };
+
+    $('#w-prev').onclick = ()=>{ if(wOrder.length===0) return; wIdx=(wIdx-1+wOrder.length)%wOrder.length; renderWrong(); };
+    $('#w-next').onclick = ()=>{ if(wOrder.length===0) return; wIdx=(wIdx+1)%wOrder.length; renderWrong(); };
+    $('#w-submit').onclick = ()=>{
+      if(wOrder.length===0 || !wPicked) return;
+      wRevealed=true; paintWrong();
+      const row = all[wOrder[wIdx]]; const ok = isCorrect(wPicked,row);
+      if(ok){ wrongIds = wrongIds.filter(id=> id!==row.id); localStorage.setItem('wrongBank_v1', JSON.stringify(wrongIds)); renderWrong(); }
+      const exp = (row.explanation||'').trim(); $('#w-explain').textContent = exp? `해설: ${exp}` : '';
+    };
+    $('#w-reveal').onclick = ()=>{ if(wOrder.length===0) return; wRevealed=true; paintWrong(); const row=all[wOrder[wIdx]]; const exp=(row.explanation||'').trim(); $('#w-explain').textContent = exp? `해설: ${exp}` : ''; };
+
+    $('#btn-reload').onclick = ()=> load();
+    $('#btn-shuffle').onclick = ()=>{ order = shuffle(order); idx=0; renderQuiz(); };
+    $('#btn-reset').onclick = ()=>{ wrongIds=[]; localStorage.setItem('wrongBank_v1','[]'); renderWrong(); };
+
+    load().catch(err=>{
+      console.error(err);
+      alert('questions.json 로드 실패. 두 파일(index.html, questions.json)을 같은 폴더에 두고 Github Pages로 배포하세요.');
+    });
+  </script>
+</body>
+</html>
